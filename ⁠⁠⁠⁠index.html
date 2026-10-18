@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحدي المعرفة بين الصحاب 🎯</title>
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #a29bfe;
+            --bg: #f7f9fc;
+            --card: #ffffff;
+            --text: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: var(--card);
+            padding: 25px;
+            border-radius: 18px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+        }
+
+        h1 { color: var(--primary); font-size: 1.6rem; margin-bottom: 8px; }
+        p { font-size: 0.95rem; color: #636e72; }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            border: 2px solid #dfe6e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            width: 100%;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn:hover { background-color: #5b4bc4; }
+
+        .options-grid {
+            display: grid;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .option-btn {
+            background: #f1f2f6;
+            border: 2px solid #dfe6e9;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: 0.2s;
+        }
+
+        .option-btn:hover { background: var(--secondary); color: white; }
+        .selected { background: var(--primary) !important; color: white !important; }
+
+        .hidden { display: none; }
+
+        .score-box {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 1. الشاشة الأولى: إدخال الاسم -->
+    <div id="setup-screen">
+        <h1>صاوب الكويز ديالك 🎯</h1>
+        <p>اكتب سميتك باش تحدا أصحابك يشوفو شحال كيعرفوك!</p>
+        <input type="text" id="creator-name" placeholder="اكتب اسمك هنا...">
+        <button class="btn" onclick="startCreating()">ابدأ اختيار الأسئلة ✨</button>
+    </div>
+
+    <!-- 2. الشاشة الثانية: اختيار الأجوبة -->
+    <div id="quiz-screen" class="hidden">
+        <h3 id="question-text">نص السؤال هنا...</h3>
+        <p id="question-progress">سؤال 1 من 15</p>
+        <div id="options-container" class="options-grid"></div>
+    </div>
+
+    <!-- 3. الشاشة الثالثة: الرابط الخاص -->
+    <div id="link-screen" class="hidden">
+        <h1>تبارك الله عليك! 🎉</h1>
+        <p>الكويز ديالك واجد، صيفط هاد الرابط لصحابك يدخلو يجاوبو:</p>
+        <input type="text" id="share-link" readonly>
+        <button class="btn" onclick="copyLink()">نسخ الرابط 📋</button>
+    </div>
+
+    <!-- 4. الشاشة الرابعة: النتيجة للمجيب -->
+    <div id="result-screen" class="hidden">
+        <h1>النتيجة النهائية 🏆</h1>
+        <p id="result-message"></p>
+        <div class="score-box" id="final-score">0 / 15</div>
+        <p id="result-comment"></p>
+        <button class="btn" onclick="location.href = location.pathname">صاوب كويز ديالك حتى نتا 🚀</button>
+    </div>
+</div>
+
+<script>
+    // 100 سؤال عشوائي متنوع
+    const allQuestions = [
+        { q: "شنو الحفلة/المناسبة المفضلة عندي؟", a: ["عيد الميلاد", "العيد الصغير", "العيد الكبير", "راس السنة"] },
+        { q: "شنو النوع المفضل عندي ديال الماكلة؟", a: ["الكسكس", "البيتزا", "البرغر", "الطاجين"] },
+        { q: "شنو العصير المفضل عندي؟", a: ["الليمون", "الأفوكا", "الموز", "الفراولة"] },
+        { q: "شنو الوقت المفضل عندي فاليوم؟", a: ["الصباح بكري", "وسط النهار", "العشية", "الليل"] },
+        { q: "شنو الرياضة المفضلة عندي؟", a: ["كورة", "الباسكيط", "الجري", "السباحة"] },
+        { q: "أكتر حاجة تخليني نتعصب بسرعة؟", a: ["الكذوب", "تخسار الهضرة", "البسالة", "اللي كيتعطل"] },
+        { q: "واش عزيز عليا السفر والتحواس؟", a: ["بزاف ديما مسافر", "مرة مرة", "عزيز عليا الدار أكثر", "غير يلا كان مع الصحاب"] },
+        { q: "شنو الفصل المفضل عندي فالبرد والسخونية؟", a: ["الصيف", "الشتا", "الربيع", "الخريف"] },
+        { q: "شنو المشروب الرسمي عندي فالمقهى؟", a: ["قهوة كحلة", "نص نص", "أتاي", "عصير"] },
+        { q: "شنو نوع الأفلام المفضل عندي؟", a: ["الأكشن", "الكوميديا", "الرعب", "الدراما"] },
+        { q: "كيفاش كنعبر فاش كنكون فرحان؟", a: ["بنضحك بزاف", "بنسكت ونبتسم", "بنسجل فويس للصحاب", "بنغني"] },
+        { q: "أكتر حاجة عزيزة عليا نديرها فلوقت الفارغ؟", a: ["نلعب العاب فالتليفون", "نتفرج ففيديوات", "نعس", "نخرج مع الصحاب"] },
+        { q: "نوع الموسيقى/الأغاني اللي كنسمع ليها؟", a: ["الراب", "الشعبي", "الشرقي", "الهادئة"] },
+        { q: "واش أنا شخص صباحي ولا ليلي؟", a: ["صباحي نشيط", "ليلي كنسهر بزاف", "على حساب المود", "ديما عيان"] },
+        { q: "نوع اللبس المفضل عندي؟", a: ["سپور (Sport)", "كاجوال (Casual)", "تقليدي", "أنانيش/كلاسيك"] },
+        { q: "شنو هو اللون المفضل عندي؟", a: ["الأزرق", "الأسود", "الأحمر", "الأخضر"] },
+        { q: "فاش كيكون عندي مشكل شنو كندير؟", a: ["كنفكر بوحدي", "كنشاور صحابي", "كنتجاهلو", "كنتعصب"] },
+        { q: "أشنو اللون ديال عينيا؟", a: ["كحل", "قهوي", "خضر", "رمادي"] },
+        { q: "واش عزيز عليا الحيوانات الأليفة؟", a: ["بزاف (القطاط/الكلاب)", "عادي", "لا كنعافهم", "نخاف منهم"] },
+        { q: "أفضل بلاصة لعطلة زوينة بالنسبة ليا؟", a: ["البحر", "الجبل", "شي مدينة تاريخية", "الدار فالمكيف"] }
+    ];
+
+    // إضافة أسئلة أخرى تلقائياً لتكملة القائمة إلى 100
+    for(let i = 21; i <= 100; i++) {
+        allQuestions.push({
+            q: `سؤال إضافي رقم ${i}: شنو التفضيل المفضل عندي؟`,
+            a: ["الخيار الأول", "الخيار الثاني", "الخيار الثالث", "الخيار الرابع"]
+        });
+    }
+
+    let selectedQuestions = [];
+    let userAnswers = [];
+    let currentStep = 0;
+    let creatorName = "";
+
+    // التحقق واش المجيب دخل عبر رابط فيه أسئلة
+    window.onload = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if(urlParams.has('q')) {
+            startQuizFromLink(urlParams.get('q'), urlParams.get('name'));
+        }
+    };
+
+    function startCreating() {
+        creatorName = document.getElementById('creator-name').value;
+        if(!creatorName) return alert("عفاك اكتب سميتك الأولة!");
+
+        // اختيار 15 سؤال عشوائي من الـ 100
+        selectedQuestions = [...allQuestions].sort(() => 0.5 - Math.random()).slice(0, 15);
+        document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        showQuestion();
+    }
+
+    function showQuestion() {
+        if(currentStep >= 15) {
+            generateLink();
+            return;
+        }
+        const q = selectedQuestions[currentStep];
+        document.getElementById('question-text').innerText = q.q;
+        document.getElementById('question-progress').innerText = `سؤال ${currentStep + 1} من 15`;
+        
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+        
+        q.a.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => saveAnswer(idx);
+            container.appendChild(btn);
+        });
+    }
+
+    function saveAnswer(optionIndex) {
+        userAnswers.push({
+            qIndex: allQuestions.indexOf(selectedQuestions[currentStep]),
+            ans: optionIndex
+        });
+        currentStep++;
+        showQuestion();
+    }
+
+    function generateLink() {
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('link-screen').classList.remove('hidden');
+
+        // تشفير الأسئلة والأجوبة فـ URL
+        const data = btoa(JSON.stringify({ name: creatorName, data: userAnswers }));
+        const fullLink = `${window.location.origin}${window.location.pathname}?q=${data}`;
+        document.getElementById('share-link').value = fullLink;
+    }
+
+    function copyLink() {
+        const copyText = document.getElementById("share-link");
+        copyText.select();
+        document.execCommand("copy");
+        alert("تم نسخ الرابط! صيفطو لصحابك فـ WhatsApp ولا Instagram 🚀");
+    }
+
+    // للمجيبين (الصحاب)
+    function startQuizFromLink(encodedData) {
+        try {
+            const decoded = JSON.parse(atob(encodedData));
+            creatorName = decoded.name;
+            const targetAnswers = decoded.data;
+
+            document.getElementById('setup-screen').innerHTML = `
+                <h1>تحدي ${creatorName}! 🎯</h1>
+                <p>جاوب على 15 سؤال وشوف شحال كتعرف ${creatorName} فالحقيقة!</p>
+                <button class="btn" onclick="startAnswering()">ابدأ التحدي الان 🔥</button>
+            `;
+
+            window.quizData = targetAnswers;
+        } catch(e) {
+            alert("الرابط غير صحيح!");
+        }
+    }
+
+    function startAnswering() {
+        selectedQuestions = window.quizData.map(item => allQuestions[item.qIndex]);
+        document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        
+        currentStep = 0;
+        let score = 0;
+
+        function showTakerQuestion() {
+            if(currentStep >= 15) {
+                showFinalResult(score);
+                return;
+            }
+            const q = selectedQuestions[currentStep];
+            document.getElementById('question-text').innerText = q.q;
+            document.getElementById('question-progress').innerText = `سؤال ${currentStep + 1} من 15`;
+            
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            
+            q.a.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => {
+                    if(idx === window.quizData[currentStep].ans) {
+                        score++;
+                    }
+                    currentStep++;
+                    showTakerQuestion();
+                };
+                container.appendChild(btn);
+            });
+        }
+        showTakerQuestion();
+    }
+
+    function showFinalResult(score) {
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+
+        document.getElementById('result-message').innerText = `جبتي فـ اختبار المعرفة ديال ${creatorName}:`;
+        document.getElementById('final-score').innerText = `${score} / 15`;
+
+        let comment = "";
+        if(score >= 12) comment = "تبارك الله عليك! نتا صاحب هاد الشخص المقرب بزاف كتعرفو كثر من راسو! 😱🔥";
+        else if(score >= 7) comment = "نتيجة متوسطة زوينة، كتعرفو ولكن مازال خصك تزيد تجلس معاه كثر 😉";
+        else comment = "واش بصح هادا صاحبك؟ هههه خصك تعاود تتعرف عليه من جديد! 🤣";
+
+        document.getElementById('result-comment').innerText = comment;
+    }
+</script>
+</body>
+</html>
